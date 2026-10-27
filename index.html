@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CodeCat Flip</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&family=Tiny5&display=swap">
+<style>
+/* Single dark look on purpose: a night stage lit around CodeCat. */
+:root {
+  --bg: #0b0a1a;
+  --ink: #141634;
+  --glow: rgba(126, 96, 255, 0.28);
+  --focus: #8f7cff;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--bg); margin: 0; overflow: hidden; }
+#wrap {
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 12px;
+}
+canvas {
+  display: block;
+  outline: none;
+  border-radius: 12px;
+  box-shadow: 0 0 0 3px var(--ink), 0 0 48px var(--glow);
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+canvas:focus-visible { box-shadow: 0 0 0 3px var(--focus), 0 0 48px var(--glow); }
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="game" tabindex="0" aria-label="CodeCat Flip, a rhythm platformer. Press Enter to start."></canvas></div>
+<script src="level.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
