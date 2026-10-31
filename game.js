@@ -632,8 +632,17 @@ function burst(x, y, col, n) {
 }
 
 // ---------------------------------------------------------------- input
+// Up and Down point where CodeCat should be: they flip if CodeCat is on the other surface,
+// and act as "wait" if it is already there. Space still toggles gravity.
+function resolveDir(a) {
+  const P = G.player;
+  if (a === 'up') return P.g > 0 ? 'wait' : 'flip';
+  if (a === 'down') return P.g < 0 ? 'wait' : 'flip';
+  return a;
+}
 function gameAction(a, ts) {
   if (mode !== 'playing' || !G || G.won || !ac) return;
+  a = resolveDir(a);
   const tIn = eventAudio(ts) - outLat - settings.offset / 1000;
   advance(tIn);
   if (mode !== 'playing' || G.player.dead) return;
@@ -673,7 +682,7 @@ function toTitle() {
     if (ac.state !== 'running') ac.resume().then(go); else go();
   }
 }
-const TOUCH_BTNS = [{ a: 'left', x: 14, y: 470, w: 66, h: 60 }, { a: 'right', x: 88, y: 470, w: 66, h: 60 }, { a: 'flip', x: 806, y: 470, w: 66, h: 60 }, { a: 'wait', x: 880, y: 470, w: 66, h: 60 }];
+const TOUCH_BTNS = [{ a: 'left', x: 14, y: 470, w: 66, h: 60 }, { a: 'right', x: 88, y: 470, w: 66, h: 60 }, { a: 'up', x: 806, y: 470, w: 66, h: 60 }, { a: 'down', x: 880, y: 470, w: 66, h: 60 }];
 const PAUSE_ITEMS = [
   { label: () => 'Resume', fn: () => resumeGame() },
   { label: () => 'Restart level', fn: () => { ac.resume().then(startGame); } },
@@ -685,7 +694,7 @@ const PAUSE_ITEMS = [
 
 const KEYMAP = {
   ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right',
-  ArrowUp: 'flip', KeyW: 'flip', Space: 'flip', ArrowDown: 'wait', KeyS: 'wait',
+  ArrowUp: 'up', KeyW: 'up', Space: 'flip', ArrowDown: 'down', KeyS: 'down',
   Escape: 'pause', KeyP: 'pause', Enter: 'enter', NumpadEnter: 'enter', KeyR: 'restart', KeyC: 'calib', Backspace: 'back'
 };
 function onKey(code, ts, rawKey) {
@@ -696,7 +705,7 @@ function onKey(code, ts, rawKey) {
 }
 function input(a, ts, code) {
   if (mode === 'title') {
-    if (a === 'enter' || a === 'flip') startGame();
+    if (a === 'enter' || a === 'flip' || a === 'up') startGame();
     else if (a === 'calib') openCalib();
     return;
   }
@@ -704,14 +713,14 @@ function input(a, ts, code) {
     if (a === 'pause') return pauseGame();
     if (a === 'restart') return startGame();
     if (G && G.won && a === 'enter') { mode = 'results'; return; }
-    if (['left', 'right', 'flip', 'wait'].includes(a)) gameAction(a, ts);
+    if (['left', 'right', 'flip', 'wait', 'up', 'down'].includes(a)) gameAction(a, ts);
     return;
   }
   if (mode === 'paused') {
     if (a === 'pause' || a === 'back') return resumeGame();
     if (a === 'restart') return void ac.resume().then(startGame);
     if (code === 'ArrowUp' || code === 'KeyW') { pauseSel = (pauseSel + PAUSE_ITEMS.length - 1) % PAUSE_ITEMS.length; return; }
-    if (a === 'wait') { pauseSel = (pauseSel + 1) % PAUSE_ITEMS.length; return; }
+    if (a === 'down') { pauseSel = (pauseSel + 1) % PAUSE_ITEMS.length; return; }
     const it = PAUSE_ITEMS[pauseSel];
     if ((a === 'left' || a === 'right') && it.adj) { it.adj(a === 'left' ? -1 : 1); return; }
     if ((a === 'enter' || code === 'Space') && it.fn) it.fn();
@@ -724,7 +733,7 @@ function input(a, ts, code) {
     return;
   }
   if (mode === 'calib') {
-    if (code === 'Space' || a === 'flip' || a === 'wait') calibTap(ts);
+    if (code === 'Space' || a === 'flip' || a === 'up' || a === 'down') calibTap(ts);
     else if (a === 'left' || a === 'right') { calib.offset = clamp(calib.offset + (a === 'left' ? -5 : 5), -250, 250); }
     else if (a === 'enter') { settings.offset = calib.offset; store('flip.settings', settings); closeCalib(); }
     else if (a === 'pause' || a === 'back') closeCalib();
@@ -757,15 +766,15 @@ function pollPad() {
     if (!p) continue;
     const st = {
       left: p.buttons[14]?.pressed || p.axes[0] < -.6, right: p.buttons[15]?.pressed || p.axes[0] > .6,
-      flip: p.buttons[12]?.pressed || p.buttons[0]?.pressed || p.buttons[3]?.pressed, wait: p.buttons[13]?.pressed || p.buttons[1]?.pressed || p.buttons[2]?.pressed,
+      up: p.buttons[12]?.pressed, down: p.buttons[13]?.pressed, flip: p.buttons[0]?.pressed || p.buttons[3]?.pressed, wait: p.buttons[1]?.pressed || p.buttons[2]?.pressed,
       pause: p.buttons[9]?.pressed, enter: p.buttons[9]?.pressed && mode !== 'playing'
     };
     const prev = padPrev[p.index] || {};
     const ts = performance.now();
-    for (const k of ['left', 'right', 'flip', 'wait', 'pause']) if (st[k] && !prev[k]) {
+    for (const k of ['left', 'right', 'up', 'down', 'flip', 'wait', 'pause']) if (st[k] && !prev[k]) {
       if (mode === 'paused' || mode === 'title' || mode === 'out' || mode === 'results') {
-        const map = { left: 'ArrowLeft', right: 'ArrowRight', flip: 'ArrowUp', wait: 'ArrowDown', pause: 'Escape' };
-        if (k === 'flip' && p.buttons[0]?.pressed && mode !== 'title') input('enter', ts, 'Enter'); else onKey(map[k], ts);
+        const map = { left: 'ArrowLeft', right: 'ArrowRight', up: 'ArrowUp', down: 'ArrowDown', flip: 'Enter', wait: 'Escape', pause: 'Escape' };
+        onKey(map[k], ts);
       } else input(k, ts, '');
     }
     padPrev[p.index] = st;
@@ -1022,8 +1031,8 @@ function drawHUD(g, now, pulse, R) {
       g.beginPath();
       if (b.a === 'left') { g.moveTo(cx + 8, cy - 11); g.lineTo(cx - 10, cy); g.lineTo(cx + 8, cy + 11); g.closePath(); g.fill(); }
       else if (b.a === 'right') { g.moveTo(cx - 8, cy - 11); g.lineTo(cx + 10, cy); g.lineTo(cx - 8, cy + 11); g.closePath(); g.fill(); }
-      else if (b.a === 'flip') { g.moveTo(cx - 12, cy - 4); g.lineTo(cx - 5, cy - 13); g.lineTo(cx + 2, cy - 4); g.closePath(); g.moveTo(cx - 2, cy + 4); g.lineTo(cx + 5, cy + 13); g.lineTo(cx + 12, cy + 4); g.closePath(); g.fill(); g.fillRect(cx - 7, cy - 5, 4, 12); g.fillRect(cx + 3, cy - 7, 4, 12); }
-      else { g.rect(cx - 8, cy - 8, 16, 16); g.fill(); }
+      else if (b.a === 'up') { g.moveTo(cx - 11, cy + 8); g.lineTo(cx, cy - 10); g.lineTo(cx + 11, cy + 8); g.closePath(); g.fill(); }
+      else { g.moveTo(cx - 11, cy - 8); g.lineTo(cx, cy + 10); g.lineTo(cx + 11, cy - 8); g.closePath(); g.fill(); }
       touchUI.push(b);
     }
   }
@@ -1067,7 +1076,7 @@ function drawTitle(g, now, pulse, R) {
   outlinedText(g, 'Flip', X, 112, 58, '#fff', 'left', 700, FONT_T);
   text(g, 'Act on every beat, even to wait.', X, 160, 16, C.lav, 'left', 500, false);
   text(g, `Miss ${SYNC_MAX} in a row and the level restarts.`, X, 182, 16, C.lav, 'left', 500, false);
-  const rows = [[['←', '→'], ['A', 'D'], 'Move'], [['↑', 'W', 'Space'], [], 'Flip gravity'], [['↓', 'S'], [], 'Wait'], [['Esc'], [], 'Pause']];
+  const rows = [[['←', '→'], ['A', 'D'], 'Move'], [['↑', 'W'], [], 'To ceiling / wait'], [['↓', 'S'], [], 'To floor / wait'], [['Esc'], [], 'Pause']];
   let y = 214;
   for (const [a, b, lbl] of rows) {
     let x = X; for (const k of a) x += keycap(g, x, y, k, R) + 6;
@@ -1081,7 +1090,7 @@ function drawTitle(g, now, pulse, R) {
   button(g, X, 384, 220, 50, touchMode ? 'Tap to start' : 'Start  (Enter)', true, R, () => startGame());
   button(g, X + 232, 384, 150, 50, 'Calibrate', false, R, () => openCalib(), 'C');
   if (best.grade) text(g, `Best: ${best.grade}  ·  ${fmt(best.secs)}`, X, 466, 14, C.dim, 'left', 600, false);
-  text(g, 'Gamepad: D-pad move · A flip · B wait', X, 492, 13, C.dim, 'left', 500, false);
+  text(g, 'Gamepad: D-pad to move and flip · A flip · B wait', X, 492, 13, C.dim, 'left', 500, false);
 }
 function fmt(s) { s = Math.round(s || 0); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; }
 function drawPause(g, R) {

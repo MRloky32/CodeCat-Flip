@@ -1,6 +1,8 @@
 # CodeCat Flip
 
-A 2D rhythm platformer starring CodeCat. You can only move on the beat: step, flip gravity or wait. Miss 5 beats in a row and the level restarts.
+A 2D rhythm platformer starring CodeCat. You can only move on the beat: step, flip gravity or wait.
+
+Up and Down point where CodeCat should be: they flip gravity when CodeCat is on the other surface and wait when it is already there. This came from the digital playtest. Miss 5 beats in a row and the level restarts.
 
 This is the digital version of the paper prototype from Activity 02 (Video Game Design S03, CUCEI). It is one short tutorial level that teaches its mechanic through level design only, with no text on screen while you play.
 
@@ -10,9 +12,11 @@ This is the digital version of the paper prototype from Activity 02 (Video Game 
 
 | Action | Keyboard | Gamepad |
 |---|---|---|
-| Move left / right | ← → or A D | D-pad |
-| Flip gravity | ↑, W or Space | A |
-| Wait one beat | ↓ or S | B |
+| Move left / right | ← → or A D | D-pad left / right |
+| Go to the ceiling (or wait if already there) | ↑ or W | D-pad up |
+| Go to the floor (or wait if already there) | ↓ or S | D-pad down |
+| Flip gravity (toggle) | Space | A |
+| Wait one beat | | B |
 | Pause | Esc | Start |
 | Restart | R | |
 
